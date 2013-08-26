@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Simple Copy Post
  * Plugin URI: http://johnregan3.github.io/simple-copy-post
- * Description: Simple, lightweight WordPress Plugin that copies/duplicates Pages, Posts and Custom Post Type Posts.
+ * Description: Simple WordPress Plugin that copies/duplicates Posts, Pages, and Custom Post Types with just one click.
  * Author: John Regan
  * Author URI: http://johnregan3.me
  * Version: 1.0
@@ -23,24 +23,24 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  *
- * @package Simple Copy Posts
+ * @package Simple Copy Post
  * @author John Regan
  * @version 1.0
  *
  * @todo Add Bulk Action support
- * @todo Add Post Type Labels
  */
+
 
 /**
  * Register text domain
  *
  * @since 1.0
  */
-function scpjr3_textdomain() {
-	load_plugin_textdomain('scpjr3');
-}
+add_action( 'init', 'scpjr3_textdomain' );
 
-add_action('init', 'scpjr3_textdomain');
+function scpjr3_textdomain() {
+	load_plugin_textdomain( 'scpjr3' );
+}
 
 
 /**
@@ -51,7 +51,7 @@ add_action('init', 'scpjr3_textdomain');
 add_action( 'admin_enqueue_scripts', 'scpjr3_enqueue_script' );
 
 function scpjr3_enqueue_script( ) {
-	wp_register_script( 'scpjr3-script', plugins_url( 'simple-copy-post.js', __FILE__) );
+	wp_register_script( 'scpjr3-script', plugins_url( 'simple-copy-post.js', __FILE__ ) );
 	wp_localize_script( 'scpjr3-script', 'scpjr3Ajax', array( 'ajaxurl' => admin_url( 'admin-ajax.php' ) ) );
 	wp_enqueue_script( 'scpjr3-script' );
 }
@@ -64,16 +64,15 @@ function scpjr3_enqueue_script( ) {
  * @param  array  $actions  Default Row Actions
  * @return array  $actions  Modified Row Actions
  */
-
-add_filter('post_row_actions','scpjr3_row_actions', 10, 2);
+add_filter( 'post_row_actions', 'scpjr3_row_actions', 10, 2 );
 
 function scpjr3_row_actions( $actions, $post ) {
 	// Create Nonce
 	$scpjr3_nonce = wp_create_nonce( 'scpjr3_nonce' );
-	$copy = '<a href="' . admin_url( "admin-ajax.php?action=scpjr3_script&nonce=" . $scpjr3_nonce . "&post_id=" . $post->ID ) . '" >' . __( 'Copy', 'scpjr3' ) . '</a>';
-	$actions = array_slice($actions, 0, 2, true) +
-		array('scjr3_copy' => $copy) +
-		array_slice($actions, 2, NULL, true);
+	$link = '<a href="' . admin_url( "admin-ajax.php?action=scpjr3_script&nonce=" . $scpjr3_nonce . "&post_id=" . $post->ID ) . '" >' . __( 'Copy', 'scpjr3' ) . '</a>';
+	$actions = array_slice( $actions, 0, 2, true ) +
+		array( 'scjr3_copy' => $link ) +
+		array_slice( $actions, 2, NULL, true );
 	return $actions;
 }
 
@@ -83,12 +82,12 @@ function scpjr3_row_actions( $actions, $post ) {
  *
  * @since 1.0
  */
-
 add_action( 'post_submitbox_misc_actions', 'scpjr3_button' );
 
 function scpjr3_button() {
 	global $post;
-	$post_type = get_post_type( $post->ID );
+	$post_id = $post->ID;
+	$post_type = get_post_type( $post_id );
 
 	// Create Nonce
 	$scpjr3_nonce = wp_create_nonce( 'scpjr3_nonce' );
@@ -96,7 +95,7 @@ function scpjr3_button() {
 	// Render Content of the Meta Box
 	echo '</div><div class="misc-pub-section" style="text-align: right;">'; //Yes, this is here on purpose.
 	echo '<div id="scpjr3-message" style="display: none; margin-bottom: 5px; padding: 5px 10px; text-align: left;"></div>';
-	echo '<a href="#" id="scpjr3-copy-post" name="scpjr3_copy_post" value="scpjr3-copy-post" class="button-secondary" data-nonce="' . $scpjr3_nonce . '" data-post-id="' . $post->ID . '">' . __( 'Copy this ', 'scpjr3' ) . $post_type . '</a>';
+	echo '<a href="#" id="scpjr3-copy-post" class="button-secondary" data-nonce="' . $scpjr3_nonce . '" data-post-id="' . $post_id . '">' . __( 'Copy this ', 'scpjr3' ) . $post_type . '</a>';
 }
 
 
@@ -124,14 +123,13 @@ function scpjr3_action() {
 	}
 
 	// Verify Nonce
-	if ( ! isset( $nonce ) || ! wp_verify_nonce( $nonce, 'scpjr3_nonce' ) ) {
+	if ( ! isset( $nonce ) || ! wp_verify_nonce( $nonce, 'scpjr3_nonce' ) )
 		return;
-	}
 
 	// Check Capabilities
-	if ( ! current_user_can( 'edit_post', $post_id ) || ! current_user_can( 'edit_page', $post_id )) {
+	if ( ! current_user_can( 'edit_post', $post_id ) || ! current_user_can( 'edit_page', $post_id ) )
 		return;
-	}
+
 	// Get the Old Post
 	$old_post = get_post( $post_id );
 
@@ -140,11 +138,11 @@ function scpjr3_action() {
 	 *
 	 * This only applies to copies made from the "Edit Post" screen.
 	 * If copied before published, the Post tile says "Autosave"
-	 * This doesn't happen when posts are copied from the Table List view.
+	 * This doesn't happen when posts are copied from the Table List ("All Posts") view.
 	 */
 	if ( ! ( "publish" == $old_post->post_status || "draft" == $old_post->post_status ) ) {
 		$response['type'] = 'not-published';
-		$response['message'] = 'Copies can only be made of Published Posts.';
+		$response['message'] = __( 'Copies can only be made of Published Posts.', 'scpjr3' );
 		echo json_encode( $response );
 		die();
 	}
@@ -170,7 +168,7 @@ function scpjr3_action() {
 		'post_name'      => $old_post->post_name,
 		'post_parent'    => $old_post->post_parent,
 		'post_password'  => $old_post->post_password,
-		'post_title'     => $old_post->post_title . ' (copy)',
+		'post_title'     => $old_post->post_title . ' (' . __( 'copy', 'scpjr3' ) . ')',
 		'post_type'      => $old_post->post_type,
 		'tags_input'     => $old_post->tags_input,
 		'to_ping'        => $old_post->to_ping,
@@ -180,30 +178,28 @@ function scpjr3_action() {
 	// Create new Post
 	$new_post_id = wp_insert_post( $new_post );
 
-	// Copy Page Template if necessary
-	if ( $new_post_id && ('page' == $old_post->post_type ) ) {
+	// Copy Page Template if applicable
+	if ( $new_post_id && ( 'page' == $old_post->post_type ) ) {
 		$page_template = get_post_meta( $post_id, '_wp_page_template' );
 		update_post_meta( $new_post_id, '_wp_page_template', $page_template );
 	}
 
 	// Prepare Response
-	if( $new_post_id ) {
+	if ( $new_post_id ) {
 		$response['type'] = 'success';
-		$response['message'] = 'Post successfully copied.';
+		$response['message'] = __( 'Post successfully copied.', 'scpjr3' );
 	} else {
 		$response['type'] = 'error';
-		$response['message'] = 'There was an error copying this post.';
+		$response['message'] = __( 'There was an error copying this post.', 'scpjr3' );
 	}
 
 	// If this is being processed with Ajax, return the response
-	if(!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-		echo json_encode($response);
+	if ( ! empty( $_SERVER['HTTP_X_REQUESTED_WITH'] ) && strtolower( $_SERVER['HTTP_X_REQUESTED_WITH'] ) == 'xmlhttprequest' ) {
+		echo json_encode( $response );
 		die();
 	// If not, redirect to the same page.
 	} else {
-		header("Location: ".$_SERVER["HTTP_REFERER"]);
+		header( "Location: ".$_SERVER["HTTP_REFERER"] );
 	}
 
-}
-
-?>
+} ?>
