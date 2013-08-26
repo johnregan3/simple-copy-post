@@ -1,7 +1,16 @@
-Simple Copy Post Plugin
-=================
+=== Simple Copy Post ===
+Contributors: johnregan3
+Donate Link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=BAG2XC69ZYADQ
+Tags: copy, duplicate, post, page, post type, duplication, copying, duplicating, button
+Requires at least: 3.0
+Tested up to: 3.6
+Stable tag: trunk
+License: GPLv2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Simple WordPress Plugin that copies/duplicates Posts, Pages, and Custom Post Types with just one click.
+Copies/Duplicates Posts, Pages, and Custom Post Types with just one click.
+
+== Description ==
 
 This plugin adds a simple button to the post editor screen which allows editors to duplicate posts quickly and easily.  It's so simple that no configuration is necessary!
 
@@ -15,7 +24,7 @@ This plugin adds a simple button to the post editor screen which allows editors 
 - Extremely lightweight (~8KB)
 - Thorough Documentation
 
-### Installation
+== Installation ==
 
 Install Simple Copy Post just as you would any other WP Plugin:
 
@@ -31,31 +40,24 @@ Install Simple Copy Post just as you would any other WP Plugin:
 
 [More help installing Plugins](http://codex.wordpress.org/Managing_Plugins#Installing_Plugins "WordPress Codex: Installing Plugins")
 
-### Use
+== Frequently Asked Questions ==
 
-* Navigate to the post type you'd like to copy (e.g., Posts or Pages)
+Find help at the [Simple Copy Post Wiki](https://github.com/johnregan3/simple-copy-post/wiki "Simple Copy Post Wiki")
 
-* Hover over the title of the post you'd like to copy.
+== Screenshots ==
 
-* When the row actions appear, click "Copy."
+1. The Simple Copy Post Link
 
-***Or...***
+2. The Simple Copy Post Editor Button
 
-* Edit the post you'd like to copy.
+3. A copied Post
 
-* In the top right of the screen, above the "Publish" or "Update" button, you'll see a button that says, "Copy this Post."  Click it.  You'll see a message notifying you the post was copied.
+== Changelog ==
 
-* When you navigate back to "All Posts," you'll see your new copied post.
-
-### Help
-
-[Frequently Asked Questions](https://github.com/johnregan3/simple-copy-post/wiki/FAQ "FAQ")
-
-[Simple Scripts Wiki](https://github.com/johnregan3/simple-copy-post/wiki "Simple Scripts Wiki")
-
-[Support Forum](http://wordpress.org/support/plugin/simple-copy-post "Support Forum")
-
-###Changelog
-
-***1.0***
+= 1.0 =
 * Inital Release
+
+== Upgrade Notice ==
+
+= 1.0 =
+Inital Release
