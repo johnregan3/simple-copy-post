@@ -2,8 +2,9 @@ jQuery( document ).ready( function() {
 
 	jQuery( "#scpjr3-copy-post" ).click( function( event ) {
 		event.preventDefault;
-		post_id = jQuery( this ).attr( "data-post-id" );
-		nonce   = jQuery( this ).attr( "data-nonce" );
+		var post_id = jQuery( this ).attr( "data-post-id" );
+		var nonce   = jQuery( this ).attr( "data-nonce" );
+		var msg     = jQuery( "#scpjr3-message" )
 
 		jQuery.ajax({
 			type : "post",
@@ -12,21 +13,16 @@ jQuery( document ).ready( function() {
 			data : { action : "scpjr3_script", post_id : post_id, nonce : nonce },
 			success: function( response ) {
 				if ( response.type == "success" ) {
-					jQuery( "#scpjr3-message" ).append( response.message );
-					jQuery( "#scpjr3-message" ).css( { 'backgroundColor' : '#ffffe0', 'border' : '1px solid #e6db55' } );
+					msg.append( response.message );
+					msg.css( { 'backgroundColor' : '#ffffe0', 'border' : '1px solid #e6db55' } );
 				} else if ( response.type == "not-published" ) {
-					jQuery( "#scpjr3-message" ).append( response.message );
-					jQuery( "#scpjr3-message" ).css( { 'backgroundColor' : '#ffebe8', 'border' : '1px solid #c00' } );
+					msg.append( response.message );
+					msg.css( { 'backgroundColor' : '#ffebe8', 'border' : '1px solid #c00' } );
 				} else {
-					jQuery( "#scpjr3-message" ).html( "Error copying Post.  Please save the Post and try again." );
-					jQuery( "#scpjr3-message" ).css( { 'backgroundColor' : '#ffebe8', 'border' : '1px solid #c00' } );
+					msg.html( "Error copying Post.  Please save the Post and try again." );
+					msg.css( { 'backgroundColor' : '#ffebe8', 'border' : '1px solid #c00' } );
 				}
-				jQuery( "#scpjr3-message" ).fadeIn().delay('5000').fadeOut();;
-			},
-			error: function( jqXHR, textStatus, errorThrown ) {
-				console.log( jqXHR);
-				console.log( textStatus );
-				console.log( errorThrown );
+				msg.fadeIn().delay('5000').fadeOut();;
 			}
 		});
 	});

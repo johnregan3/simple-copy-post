@@ -26,7 +26,9 @@
  * @package Simple Copy Posts
  * @author John Regan
  * @version 1.0
+ *
  * @todo Add Bulk Action support
+ * @todo Add Post Type Labels
  */
 
 /**
@@ -46,12 +48,33 @@ add_action('init', 'scpjr3_textdomain');
  *
  * @since 1.0
  */
-add_action( 'admin_enqueue_scripts', 'scpjr3_scripts' );
+add_action( 'admin_enqueue_scripts', 'scpjr3_enqueue_script' );
 
-function scpjr3_scripts( ) {
+function scpjr3_enqueue_script( ) {
 	wp_register_script( 'scpjr3-script', plugins_url( 'simple-copy-post.js', __FILE__) );
 	wp_localize_script( 'scpjr3-script', 'scpjr3Ajax', array( 'ajaxurl' => admin_url( 'admin-ajax.php' ) ) );
 	wp_enqueue_script( 'scpjr3-script' );
+}
+
+
+/**
+ * Add "Copy" link to Table Row Actions
+ *
+ * @since 1.0
+ * @param  array  $actions  Default Row Actions
+ * @return array  $actions  Modified Row Actions
+ */
+
+add_filter('post_row_actions','scpjr3_row_actions', 10, 2);
+
+function scpjr3_row_actions( $actions, $post ) {
+	// Create Nonce
+	$scpjr3_nonce = wp_create_nonce( 'scpjr3_nonce' );
+	$copy = '<a href="' . admin_url( "admin-ajax.php?action=scpjr3_script&nonce=" . $scpjr3_nonce . "&post_id=" . $post->ID ) . '" >' . __( 'Copy', 'scpjr3' ) . '</a>';
+	$actions = array_slice($actions, 0, 2, true) +
+		array('scjr3_copy' => $copy) +
+		array_slice($actions, 2, NULL, true);
+	return $actions;
 }
 
 
@@ -61,10 +84,11 @@ function scpjr3_scripts( ) {
  * @since 1.0
  */
 
-add_action( 'post_submitbox_misc_actions', 'scpjr3_content' );
+add_action( 'post_submitbox_misc_actions', 'scpjr3_button' );
 
-function scpjr3_content() {
+function scpjr3_button() {
 	global $post;
+	$post_type = get_post_type( $post->ID );
 
 	// Create Nonce
 	$scpjr3_nonce = wp_create_nonce( 'scpjr3_nonce' );
@@ -72,8 +96,7 @@ function scpjr3_content() {
 	// Render Content of the Meta Box
 	echo '</div><div class="misc-pub-section" style="text-align: right;">'; //Yes, this is here on purpose.
 	echo '<div id="scpjr3-message" style="display: none; margin-bottom: 5px; padding: 5px 10px; text-align: left;"></div>';
-
-	echo '<a href="#" id="scpjr3-copy-post" name="scpjr3_copy_post" value="scpjr3-copy-post" class="button-secondary" data-nonce="' . $scpjr3_nonce . '" data-post-id="' . $post->ID . '">' . __( 'Copy this Post', 'scpjr3' ) . '</a>';
+	echo '<a href="#" id="scpjr3-copy-post" name="scpjr3_copy_post" value="scpjr3-copy-post" class="button-secondary" data-nonce="' . $scpjr3_nonce . '" data-post-id="' . $post->ID . '">' . __( 'Copy this ', 'scpjr3' ) . $post_type . '</a>';
 }
 
 
@@ -81,7 +104,7 @@ function scpjr3_content() {
  * Copy Post Action
  *
  * Verifies nonce, checks for capabilities, then copies content from
- * original post ($old_post) into a new post.  Then, it saves, and
+ * original post ($old_post) into a new post object.  Then, it inserts the post, and
  * if it's a page, it copies the Page Template.  Finally, if this
  * is an ajax request, a response is returned. If not, the page is refreshed.
  *
@@ -91,6 +114,7 @@ add_action( 'wp_ajax_scpjr3_script', 'scpjr3_action' );
 
 function scpjr3_action() {
 
+	// Check if this is a GET or POST request (Table List vs Edit Post view)
 	if ( isset( $_GET['nonce'] ) && isset( $_GET['post_id'] ) ) {
 		$nonce = $_GET['nonce'];
 		$post_id = $_GET['post_id'];
@@ -99,7 +123,7 @@ function scpjr3_action() {
 		$post_id = $_POST['post_id'];
 	}
 
-	// Nonce Check
+	// Verify Nonce
 	if ( ! isset( $nonce ) || ! wp_verify_nonce( $nonce, 'scpjr3_nonce' ) ) {
 		return;
 	}
@@ -111,15 +135,27 @@ function scpjr3_action() {
 	// Get the Old Post
 	$old_post = get_post( $post_id );
 
-	//If Old Post is unpublished, exit.
-	if ( ( "publish" != $old_post->post_status ) && ( !empty($_SERVER['HTTP_X_REQUESTED_WITH'] ) && ( strtolower( $_SERVER['HTTP_X_REQUESTED_WITH'] ) == 'xmlhttprequest') ) ) {
+	/**
+	 * If Old Post is unpublished, exit.
+	 *
+	 * This only applies to copies made from the "Edit Post" screen.
+	 * If copied before published, the Post tile says "Autosave"
+	 * This doesn't happen when posts are copied from the Table List view.
+	 */
+	if ( ! ( "publish" == $old_post->post_status || "draft" == $old_post->post_status ) ) {
 		$response['type'] = 'not-published';
 		$response['message'] = 'Copies can only be made of Published Posts.';
 		echo json_encode( $response );
 		die();
 	}
 
-	// Copy Post Object Values
+	/**
+	 * Copy Post Object Values
+	 *
+	 * Notice times are not copied over to new post to avoid conflicts
+	 * Also, the post_status is draft, so users can make adjustments before
+	 * publishing.
+	 */
 	$new_post = array(
 		'post_status'    => 'draft',
 		'menu_order'     => $old_post->menu_order,
@@ -168,24 +204,6 @@ function scpjr3_action() {
 		header("Location: ".$_SERVER["HTTP_REFERER"]);
 	}
 
-}
-
-
-/**
- * Add Copy link to Table Row Actions
- *
- * @since 1.0
- * @param  array  $actions  Default Row Actions
- * @return array  $actions  Modified Row Actions
- */
-
-add_filter('post_row_actions','scpjr3_row_actions', 10, 2);
-
-function scpjr3_row_actions( $actions, $post ) {
-	// Create Nonce
-	$scpjr3_nonce = wp_create_nonce( 'scpjr3_nonce' );
-	$actions['scjr3_copy'] = '<a href="' . admin_url( "admin-ajax.php?action=scpjr3_script&nonce=" . $scpjr3_nonce . "&post_id=" . $post->ID ) . '" >' . __( 'Copy', 'scpjr3' ) . '</a>';
-	return $actions;
 }
 
 ?>
